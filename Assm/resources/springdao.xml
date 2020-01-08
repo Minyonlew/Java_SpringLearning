@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	
+	<!-- 1.因为mapper要用注解，所以要配置包扫描 -->
+	<context:component-scan base-package="com.my.ssm"/>
+	
+	<!-- 从上到下配，
+	2.主要的是要连接数据库，所以先连接数据源 
+	3.又由于数据库有其单独的配置文件（即db.properties文件）,所以先读取该文件
+	4.接着是创建数据源
+		a.在里面配置最基本的四要素和最大连接数
+	5.配置MyBatis的工厂对象
+		a.配置MyBatis框架的 SqlSessionFactory工程对象
+		（是spring和mybatis进行集成的配置，其路径可以在桥梁包中找到：SqlSessionFactoryBean.class）
+		b.需要数据源才能连接数据库。 注入数据源
+		c. 配置别名 (这里配不配都没有影响)
+	6.开始创建代理对象（使用包扫描创建映射接口代理对象）
+		a.因为是扫包，所以不用id而用class 
+		b.因为也是spring与mybatis集成，所以地址要在桥梁包里面找（MapperScannerConfigurer.class）
+		c.配置映射接口对应的包
+	-->
+	
+	<!-- 3.读取db.properties配置文件 -->
+	<context:property-placeholder location="classpath:db.properties"/>
+	
+	<!-- 4.配置数据源（阿里的数据源） -->
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+	 	<!-- a.在里面配置最基本的四要素和最大连接数 -->
+		<property name="driverClassName" value="${jdbc.driverClassName}"/>
+		<property name="url" value="${jdbc.url}"/>
+		<property name="username" value="${jdbc.username}"/>
+		<property name="password" value="${jdbc.password}"/>
+		<property name="maxActive" value="${jdbc.maxActive}"/>
+	</bean>
+	
+	<!-- 5.配置MyBatis的工厂对象
+			a.配置MyBatis框架的 SqlSessionFactory工程对象   
+			（是spring和mybatis进行集成的配置，其路径可以在桥梁包中找到：SqlSessionFactoryBean.class）
+	-->
+	<bean name="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- b.需要数据源才能连接数据库。 注入数据源 -->
+		<property name="dataSource" ref="dataSource"/>			
+		<!-- c. 配置别名 (这里配不配都没有影响)-->
+		<property name="typeAliasesPackage" value="com.my.ssm.pojo"/>
+		<!-- 如果mybatis是采用xml的方式，则需要配置映射文件,但这里是注解方式，所有不需要 -->
+		<!-- <property name="mapperLocations"></property> -->
+	</bean>
+
+	<!-- 6.开始创建代理对象（使用包扫描创建映射接口代理对象）
+			a.因为是扫包，所以不用id而用class 
+			b.因为也是spring与mybatis集成，所以地址要在桥梁包里面找（MapperScannerConfigurer.class）
+			-->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">			<!--c.配置映射接口对应的包  -->
+		<property name="basePackage" value="com.my.ssm.mapper"/>			
+		<!-- 配置工厂bean的名称 【可选】 -->
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+	</bean>
+	
+	<!-- 以上为Mybatis集成的配置 -->
+	
+	<!-- 7.事务配置 作用在service层
+		a.配置事务管理器
+		b.配置事务通知（增强）
+		c.使用AOP将事务切入到Service层
+	 -->
+	 <!--a  -->
+		 <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		 	<!-- 注入数据源 -->
+		 	<property name="dataSource" ref="dataSource"/>
+		</bean>
+	
+	<!-- b.通知（增强），要增强的方法，有两种：DQL 和 DML,其他方法都采用默认 -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<!-- DQL -->
+			<tx:method name="select*" read-only="true" />
+			<!-- DML  -->
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- c.配置切入面 = 切入点+通知  -->
+	<aop:config>
+		<!-- 切入的通知  切入点 -->
+		<aop:advisor advice-ref="txAdvice" pointcut="execution(* cn.zj.ssm.service..*.*(..))"/>
+	</aop:config>
+	
+	
+</beans>

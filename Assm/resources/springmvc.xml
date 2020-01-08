@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+	<!-- 配置SpringMVC  -->
+	
+	<!-- 1. 设置注解驱动 -->
+	<mvc:annotation-driven/>
+	
+	<!-- 2. 配置视图解析器 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<!-- 前缀 -->
+		<property name="prefix" value="/WEB-INF/view/"></property>
+		<!-- 后缀 -->
+		<property name="suffix" value=".jsp"/>
+		<!-- 配置了前缀和后缀之后，UserController的中模板，如 userList就不用写成 /WEB-INF/view/userList.jsp了-->
+	</bean>
+	
+	<!-- 引入 spring.xml配置文件 -->
+	<!-- <import resource="classpath:springdao.xml"/> -->
+</beans>
